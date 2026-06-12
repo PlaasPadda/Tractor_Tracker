@@ -25,6 +25,8 @@ public class Main {
         Object[] readerArgs2 = new Object[]{"Farm0", "location_B"};
         try {
             // Format: createNewAgent("agentName", "fully.qualified.ClassName", args)
+        	// Servers
+        	  mainContainer.createNewAgent("Server", "tractor_tracker.app.ServerAgent", null).start();
         	// Managers
         	  mainContainer.createNewAgent("FarmManager", "tractor_tracker.app.FarmManagerAgent", null).start();
         	// Farms
