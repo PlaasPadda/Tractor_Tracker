@@ -25,7 +25,7 @@ public class TractorAgent extends Agent {
 
     // Simulated location pool — tractor randomly "moves" between these
     private static final String[] SIMULATED_LOCATIONS = {
-        "location_A", "location_B", "location_C", "location_D"
+        "location_A", "location_B"
     };
 
     private final Random random = new Random();
