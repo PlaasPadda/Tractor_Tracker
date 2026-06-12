@@ -21,14 +21,19 @@ public class Main {
         AgentContainer mainContainer = runtime.createMainContainer(profile);
 
         // Optional: spawn your first agents here at startup
-        Object[] readerArgs = new Object[]{"Farm0", "location_A"};
+        Object[] readerArgs1 = new Object[]{"Farm0", "location_A"};
+        Object[] readerArgs2 = new Object[]{"Farm0", "location_B"};
         try {
-//            // Format: createNewAgent("agentName", "fully.qualified.ClassName", args)
-        	  mainContainer.createNewAgent("Reader1", "tractor_tracker.app.ReaderAgent", readerArgs).start();
+            // Format: createNewAgent("agentName", "fully.qualified.ClassName", args)
+        	// Managers
+        	  mainContainer.createNewAgent("FarmManager", "tractor_tracker.app.FarmManagerAgent", null).start();
+        	// Farms
+        	  mainContainer.createNewAgent("Farm0", "tractor_tracker.app.FarmAgent", null).start();
+            // Readers	
+        	  mainContainer.createNewAgent("Reader1", "tractor_tracker.app.ReaderAgent", readerArgs1).start();
+        	  mainContainer.createNewAgent("Reader2", "tractor_tracker.app.ReaderAgent", readerArgs2).start();
+        	//Tractors
         	  mainContainer.createNewAgent("Tractor1", "tractor_tracker.app.TractorAgent", null).start();
-//            mainContainer.createNewAgent("Server", "tractor.agents.ServerAgent", null).start();
-//            mainContainer.createNewAgent("Creator", "tractor.agents.CreatorAgent", null).start();
-//            mainContainer.createNewAgent("Dashboard", "tractor.agents.DashboardAgent", null).start();
 
         } catch (StaleProxyException e) {
             e.printStackTrace();
