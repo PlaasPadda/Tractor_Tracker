@@ -21,8 +21,10 @@ public class Main {
         AgentContainer mainContainer = runtime.createMainContainer(profile);
 
         // Optional: spawn your first agents here at startup
-        Object[] readerArgs1 = new Object[]{"Farm0", "location_A"};
-        Object[] readerArgs2 = new Object[]{"Farm0", "location_B"};
+        Object[] readerArgs01 = new Object[]{"Farm0", "location_01"};
+        Object[] readerArgs02 = new Object[]{"Farm0", "location_02"};
+        Object[] readerArgs11 = new Object[]{"Farm1", "location_11"};
+        Object[] readerArgs12 = new Object[]{"Farm1", "location_12"};
         try {
             // Format: createNewAgent("agentName", "fully.qualified.ClassName", args)
         	// Servers
@@ -31,11 +33,18 @@ public class Main {
         	  mainContainer.createNewAgent("FarmManager", "tractor_tracker.app.FarmManagerAgent", null).start();
         	// Farms
         	  mainContainer.createNewAgent("Farm0", "tractor_tracker.app.FarmAgent", null).start();
+        	  mainContainer.createNewAgent("Farm1", "tractor_tracker.app.FarmAgent", null).start();
             // Readers	
-        	  mainContainer.createNewAgent("Reader1", "tractor_tracker.app.ReaderAgent", readerArgs1).start();
-        	  mainContainer.createNewAgent("Reader2", "tractor_tracker.app.ReaderAgent", readerArgs2).start();
+        	  mainContainer.createNewAgent("Reader01", "tractor_tracker.app.ReaderAgent", readerArgs01).start();
+        	  mainContainer.createNewAgent("Reader02", "tractor_tracker.app.ReaderAgent", readerArgs02).start();
+        	  mainContainer.createNewAgent("Reader11", "tractor_tracker.app.ReaderAgent", readerArgs11).start();
+        	  mainContainer.createNewAgent("Reader12", "tractor_tracker.app.ReaderAgent", readerArgs12).start();
         	//Tractors
         	  mainContainer.createNewAgent("Tractor1", "tractor_tracker.app.TractorAgent", null).start();
+        	  mainContainer.createNewAgent("Tractor2", "tractor_tracker.app.TractorAgent", null).start();
+        	// Dashboards
+        	  mainContainer.createNewAgent("Dashboard", "tractor_tracker.app.DashboardAgent", null).start();
+
 
         } catch (StaleProxyException e) {
             e.printStackTrace();
