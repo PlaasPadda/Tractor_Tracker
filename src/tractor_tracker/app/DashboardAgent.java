@@ -80,7 +80,7 @@ public class DashboardAgent extends Agent {
 
             @Override
             public void action() {
-            	// Soek net inform
+            	// Soek net inform (one gebruik conversation ID want inform en inform_ref is baie dieselfde I think)
             	MessageTemplate mt = MessageTemplate.and(
             	        MessageTemplate.MatchPerformative(ACLMessage.INFORM),
             	        MessageTemplate.MatchConversationId("agent-creation")

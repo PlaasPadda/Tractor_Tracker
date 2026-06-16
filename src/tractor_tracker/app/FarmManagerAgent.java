@@ -146,7 +146,7 @@ public class FarmManagerAgent extends Agent {
         dfd.addServices(sd);
 
         try {
-        	// Register met daai description
+        	// Register met daai descriptionn
             DFService.register(this, dfd);
             System.out.println("[" + farmManagerID + "] Registered with DF.");
         } catch (FIPAException e) {

@@ -96,7 +96,7 @@ public class ServerAgent extends Agent {
                     if (currentState != null) {
                         reply.setContent(gson.toJson(currentState));
                     } else {
-                        // Tractor not found — reply with an empty response
+                        // Tractor not found 
                         reply.setContent("{\"error\": \"Tractor not found: " + query.tractorID + "\"}");
                     }
 
@@ -122,49 +122,72 @@ public class ServerAgent extends Agent {
     }
 
     // Update currstate.txt met most recent state van tractor
-//////////////////////////////////      NB HIERDIE 3 GEBRUIK STATEMAPS   VERANDER! /////////////////////
-    private void updateCurrentStateFile(FarmInfo info) {
-        // Read the existing current states into a map keyed by tractorID
-        Map<String, FarmInfo> stateMap = readAllCurrentStates();
+	private void updateCurrentStateFile(FarmInfo info) {
+		// Lees alle current states na n list gemaak van Farminfo types 
+		// readAllStates maak die file oop!
+		List<FarmInfo> stateList = readAllCurrentStates();
 
-        // Update or insert the latest state for this tractor
-        stateMap.put(info.tractorID, info);
+		// Soek vir die entry van hierdie tractor, en set daai index na die nuwe state
+		boolean found = false;
+		for (int i = 0; i < stateList.size(); i++) {
+			if (stateList.get(i).tractorID.equals(info.tractorID)) {
+				stateList.set(i, info); // replace with the latest info
+				found = true;
+				break;
+			}
+		}
 
-        // Write the entire map back to the file, one JSON line per tractor
-        try (FileWriter fw = new FileWriter(CURRSTATE_FILE, false)) {
-            for (FarmInfo state : stateMap.values()) {
-                fw.write(gson.toJson(state) + System.lineSeparator());
-            }
-            System.out.println("[" + serverID + "] Current state updated in " + CURRSTATE_FILE);
-        } catch (IOException e) {
-            System.err.println("[" + serverID + "] Failed to write to " + CURRSTATE_FILE + ": " + e.getMessage());
-        }
-    }
+		// As hy nog nie daar is nie, add hom
+		if (!found) {
+			stateList.add(info);
+		}
 
-    // Reads currstate.txt and returns the current state for a specific tractorID
-    private FarmInfo readCurrentState(String tractorID) {
-        Map<String, FarmInfo> stateMap = readAllCurrentStates();
-        return stateMap.get(tractorID);
-    }
+		// Herskryf hele file met nuwe list
+		try (FileWriter fw = new FileWriter(CURRSTATE_FILE, false)) {
+			// Java om oor array te iterate met for loop
+			for (FarmInfo state : stateList) {
+				fw.write(gson.toJson(state) + System.lineSeparator());
+			}
+			System.out.println("[" + serverID + "] Current state updated in " + CURRSTATE_FILE);
+		} catch (IOException e) {
+			System.err.println("[" + serverID + "] Failed to write to " + CURRSTATE_FILE + ": " + e.getMessage());
+		}
+	}
 
-    // Reads all current states from currstate.txt into a map keyed by tractorID
-    private Map<String, FarmInfo> readAllCurrentStates() {
-        Map<String, FarmInfo> stateMap = new HashMap<>();
+	// Lees currstate.txt en return current state van n tractorID
+	// readAllStates maak die file oop!
+	private FarmInfo readCurrentState(String tractorID) {
+		List<FarmInfo> stateList = readAllCurrentStates();
 
-        try (java.io.BufferedReader br = new java.io.BufferedReader(new FileReader(CURRSTATE_FILE))) {
-            String line;
-            while ((line = br.readLine()) != null) {
-                if (!line.trim().isEmpty()) {
-                    FarmInfo state = gson.fromJson(line, FarmInfo.class);
-                    stateMap.put(state.tractorID, state);
-                }
-            }
-        } catch (IOException e) {
-            System.err.println("[" + serverID + "] Failed to read " + CURRSTATE_FILE + ": " + e.getMessage());
-        }
+		// Loop through and find the matching tractor
+		for (FarmInfo state : stateList) {
+			if (state.tractorID.equals(tractorID)) {
+				return state;
+			}
+		}
 
-        return stateMap;
-    }
+		return null; // As niks gevind
+	}
+
+	// Reads all current states from currstate.txt into a list
+	private List<FarmInfo> readAllCurrentStates() {
+		List<FarmInfo> stateList = new ArrayList<>();
+
+		// Iterate oor lines, elke line vat van Json na message class en add na list, return list
+		try (java.io.BufferedReader br = new java.io.BufferedReader(new FileReader(CURRSTATE_FILE))) {
+			String line;
+			while ((line = br.readLine()) != null) {
+				if (!line.trim().isEmpty()) {
+					FarmInfo state = gson.fromJson(line, FarmInfo.class);
+					stateList.add(state);
+				}
+			}
+		} catch (IOException e) {
+			System.err.println("[" + serverID + "] Failed to read " + CURRSTATE_FILE + ": " + e.getMessage());
+		}
+
+		return stateList;
+	}
 
     // Maak die files as hulle nie bestaan 
     private void initialiseFiles() {
