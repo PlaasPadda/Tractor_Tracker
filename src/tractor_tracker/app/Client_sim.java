@@ -49,5 +49,10 @@ public class Client_sim {
 		}
 
 	}
+		
+	public static void main(String[] args) {
+		Client_sim client = new Client_sim();
+		client.connect();
+	}
 
 }

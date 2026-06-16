@@ -23,7 +23,7 @@ public class TractorAgent extends Agent {
     private float fuelConsumed = 0.0f;
     private String currentLocationID;
 
-    // Simulated location pool — tractor randomly "moves" between these
+    // Available locations 
     private static final String[] SIMULATED_LOCATIONS = {
         "farm1p11", "farm1p12", "farm2p11", "farm2p12"
     };
@@ -37,14 +37,14 @@ public class TractorAgent extends Agent {
 
         System.out.println("[" + tractorID + "] Started at location: " + currentLocationID);
 
-        // Behaviour 1: Ticker to simulate fuel consumption over time
-        addBehaviour(new TickerBehaviour(this, 5000) { // fires every 5 seconds
+        // Behaviour 1: Ticker update fuel consumption oor tyd
+        addBehaviour(new TickerBehaviour(this, 5000) {  
             @Override
             protected void onTick() {
-                // Simulate fuel consumption increasing over time
+            	// Increase oor tyd
                 fuelConsumed += 0.5f + random.nextFloat() * 1.5f;
 
-                // Simulate tractor moving to a new location
+                // Beweeg tractor
                 currentLocationID = SIMULATED_LOCATIONS[random.nextInt(SIMULATED_LOCATIONS.length)];
 
                 System.out.println("[" + tractorID + "] Fuel consumed: " + fuelConsumed
