@@ -26,8 +26,8 @@ public class DashboardAgent extends Agent {
     private JLabel infoLabel;
 
     // Nuwe Agents begin nommer
-    private int newTractorCount = 1;
-    private int newFarmCount = 1;
+    private int newTractorCount = 3;
+    private int newFarmCount = 3;
 
     @Override
     protected void setup() {

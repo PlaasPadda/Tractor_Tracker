@@ -1,2 +1,3 @@
-{"tractorID":"Tractor1","fuelLevel":16.198345,"locationID":"location_01","farmID":"Farm0"}
-{"tractorID":"Tractor2","fuelLevel":14.616168,"locationID":"location_12","farmID":"Farm1"}
+{"tractorID":"Tractor1","fuelLevel":51.94837,"locationID":"farm1p12","farmID":"Farm1"}
+{"tractorID":"Tractor2","fuelLevel":48.446472,"locationID":"farm1p12","farmID":"Farm1"}
+{"tractorID":"Tractor3","fuelLevel":24.541933,"locationID":"farm1p11","farmID":"Farm1"}

@@ -20,8 +20,8 @@ public class CreatorAgent extends Agent {
     private final Gson gson = new Gson();
 
     // Agent begin nommers
-    private int tractorCount = 0;
-    private int farmCount = 0;
+    private int tractorCount = 3;
+    private int farmCount = 3;
 
     @Override
     protected void setup() {
@@ -84,6 +84,7 @@ public class CreatorAgent extends Agent {
                     status = "FAILURE";
                 }
 
+                // Bou inform
                 AssetCreationResponse responseObj = new AssetCreationResponse(
                         creationRequest.assetType,
                         creationRequest.assetID,
@@ -127,11 +128,12 @@ public class CreatorAgent extends Agent {
             System.out.println("[" + creatorID + "] Spawned FarmAgent: " + farmID);
 
             // Spawn sy Reader agents 
-            String reader1ID = farmID + "_Reader1";
-            String reader2ID = farmID + "_Reader2";
+            String reader1ID = farmID + "_11";
+            String reader2ID = farmID + "_12";
 
-            Object[] reader1Args = new Object[]{farmID, farmID + "_location_A"};
-            Object[] reader2Args = new Object[]{farmID, farmID + "_location_B"};
+            int farmNumber = farmCount++;
+            Object[] reader1Args = new Object[]{farmID, "farm"+ (farmNumber) + "p11"};
+            Object[] reader2Args = new Object[]{farmID, "farm"+ (farmNumber) + "p12"};
 
             AgentController reader1AC = getContainerController().createNewAgent(
                     reader1ID,
