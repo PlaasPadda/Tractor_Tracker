@@ -28,8 +28,8 @@ public class ReaderAgent extends Agent {
     private String farmID;
     private String locationID;
 
-    // One shared lock per farm port, so only one reader at a time can query
-    // a given farm's position sensor. Shared across all ReaderAgent instances.
+    // Gee elke farm n lock sodat net een reader op n slag vir Erlang kan query 
+    // oor daai farm se port, anders multiple messages op dieselfde port op dieselfde tyd = bad
     private static final Lock farm1Lock = new ReentrantLock();
     private static final Lock farm2Lock = new ReentrantLock();
     private static final Lock farm3Lock = new ReentrantLock();
@@ -51,6 +51,7 @@ public class ReaderAgent extends Agent {
     protected void setup() {
         readerID = getLocalName();
 
+        // Setup reader
         Object[] args = getArguments();
         if (args != null && args.length >= 2) {
             farmID = (String) args[0];
@@ -65,10 +66,8 @@ public class ReaderAgent extends Agent {
 
         registerWithDF();
 
-        // SSResponderDispatcher: permanently listens for CFPs, and for EACH one
-        // spins up a brand new SSContractNetResponder to handle that single interaction.
-        // This is the correct JADE pattern for a responder that must handle
-        // repeated, independent CNP interactions over time.
+        // Die dispatcher launch n nuwe responder vir elke CFP received. Anders run responder
+        // en dus erlang queries net once
         MessageTemplate cfpTemplate = MessageTemplate.MatchPerformative(ACLMessage.CFP);
 
         addBehaviour(new SSResponderDispatcher(this, cfpTemplate) {
@@ -77,9 +76,11 @@ public class ReaderAgent extends Agent {
             protected Behaviour createResponder(ACLMessage cfp) {
                 System.out.println("[" + readerID + "] New CFP dispatched, creating responder.");
 
+                // Nuwe CFP received, dus maak nuwe responder
                 return new SSContractNetResponder(myAgent, cfp) {
 
                     @Override
+                    // Hella debug exceptions
                     protected ACLMessage handleCfp(ACLMessage cfp)
                             throws RefuseException, FailureException, NotUnderstoodException {
 
@@ -90,6 +91,7 @@ public class ReaderAgent extends Agent {
                                 + cfp.getSender().getLocalName()
                                 + " | Tractor: " + info.tractorID);
 
+                        // Query erlang
                         long detectionTime = queryErlangForDetection(info.tractorID);
 
                         System.out.println("[" + readerID + "] Detection time for " + info.tractorID
@@ -108,6 +110,7 @@ public class ReaderAgent extends Agent {
                     protected ACLMessage handleAcceptProposal(ACLMessage cfp, ACLMessage propose, ACLMessage accept)
                             throws FailureException {
 
+                    	// As accepted, forward info na farm en reply aan tractor dat deed is done
                         Gson gson = new Gson();
                         TractorInfo info = gson.fromJson(cfp.getContent(), TractorInfo.class);
 
@@ -115,8 +118,10 @@ public class ReaderAgent extends Agent {
                                 + " | Fuel: " + info.fuelLevel
                                 + " | Location: " + locationID);
 
+
                         forwardToFarm(info);
 
+                        // Reply aan tractor
                         ACLMessage inform = accept.createReply();
                         inform.setPerformative(ACLMessage.INFORM);
 
@@ -130,14 +135,18 @@ public class ReaderAgent extends Agent {
         });
     }
 
-    // Queries the Erlang simulation's position sensor for this reader's last detection.
+    // Vra vir erlang wat hierdie sensor se laaste detection was
     private long queryErlangForDetection(String tractorID) {
+    	// Bou portnumber
+    	// Replace alle characters van string wat nie nommers is nie, met niks
         int farmNumber = Integer.parseInt(farmID.replaceAll("[^0-9]", ""));
         int port = 9100 + farmNumber;
 
+        // Lock hierdie farm se port sodat daar nie clash is nie
         Lock lock = getLockForFarm(farmNumber);
         lock.lock();
 
+        // Open socket, send bytes, receive bytes
         try {
             Socket socket = new Socket("localhost", port);
 
@@ -157,21 +166,26 @@ public class ReaderAgent extends Agent {
             System.err.println("[" + readerID + "] Failed to query Erlang: " + e.getMessage());
             return 0;
         } finally {
+        	// Unlock port number vir volgende sensor
             lock.unlock();
         }
     }
 
+    // Copy tyd vanaf erlang antwoord
     private long parseDetectionTime(String entry, String tractorID) {
         String[] parts = entry.split("_");
 
+        // As incorrect format, los
         if (parts.length < 4) {
             System.err.println("[" + readerID + "] Unexpected Erlang entry format: " + entry);
             return 0;
         }
 
+        // Copy relevant parts (seperated with _)
         String lastTractor = parts[2];
         String timeString = parts[3];
 
+        // As most recent tractor nie die CNP tractor is nie, los
         if (lastTractor.equalsIgnoreCase("none")) {
             return 0;
         }
@@ -181,6 +195,7 @@ public class ReaderAgent extends Agent {
         }
 
         try {
+        	// Return tyd
             return Long.parseLong(timeString);
         } catch (NumberFormatException e) {
             System.err.println("[" + readerID + "] Could not parse time from entry: " + entry);
@@ -189,6 +204,7 @@ public class ReaderAgent extends Agent {
     }
 
     private void forwardToFarm(TractorInfo info) {
+    	// Bou farm descriptoin
         DFAgentDescription template = new DFAgentDescription();
         ServiceDescription sd = new ServiceDescription();
         sd.setType("farm");
@@ -196,12 +212,14 @@ public class ReaderAgent extends Agent {
         template.addServices(sd);
 
         try {
+        	// Soek vir farm met daai description
             DFAgentDescription[] results = DFService.search(this, template);
             if (results == null || results.length == 0) {
                 System.err.println("[" + readerID + "] No Farm agent found for farmID: " + farmID);
                 return;
             }
 
+            // Bou inform message
             ACLMessage informFarm = new ACLMessage(ACLMessage.INFORM);
             informFarm.addReceiver(results[0].getName());
 
@@ -217,6 +235,7 @@ public class ReaderAgent extends Agent {
     }
 
     private void registerWithDF() {
+    	// Set description en register met daai description
         DFAgentDescription dfd = new DFAgentDescription();
         dfd.setName(getAID());
 

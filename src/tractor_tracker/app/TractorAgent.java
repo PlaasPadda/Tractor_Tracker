@@ -26,7 +26,7 @@ public class TractorAgent extends Agent {
     private float fuelConsumed = 0.0f;
     private String currentLocationID;
 
-    // Available locations 
+    // Available locations, Obsolete nou
     private static final String[] SIMULATED_LOCATIONS = {
         "farm1p11", "farm1p12", "farm2p11", "farm2p12"
     };
@@ -40,7 +40,7 @@ public class TractorAgent extends Agent {
 
         System.out.println("[" + tractorID + "] Started at location: " + currentLocationID);
 
-        // Behaviour 1: Ticker update fuel consumption oor tyd
+        // Behaviour 1: Ticker update die fuel consumption oor tyd
         addBehaviour(new TickerBehaviour(this, 10000) {  
             @Override
             protected void onTick() {
@@ -81,7 +81,7 @@ public class TractorAgent extends Agent {
             return;
         }
 
-        // Build CFP message en Add readers as receivers van CFP
+        // Build CFP message en Add readers as receivers van CFP deur deur hulle te loop
         ACLMessage cfp = new ACLMessage(ACLMessage.CFP);
         for (DFAgentDescription result : results) {
             cfp.addReceiver(result.getName());
@@ -102,6 +102,7 @@ public class TractorAgent extends Agent {
         		// Ons acknowledge net receipt hier
         	}
         	
+        	// Ons kyk na alle responses op dieselfde tyd
         	@Override
         	protected void handleAllResponses(Vector responses, Vector acceptances) {
         	    Gson gson = new Gson();
@@ -109,10 +110,12 @@ public class TractorAgent extends Agent {
         	    ACLMessage bestProposal = null;
         	    long bestTime = -1;
 
-        	    // Find the proposal with the largest detection time
+        	    // Soek proposal met grootste tyd
+        	    // Loop deur responses
         	    for (Object obj : responses) {
         	        ACLMessage response = (ACLMessage) obj;
 
+        	        // As proposal, extract data
         	        if (response.getPerformative() == ACLMessage.PROPOSE) {
         	            ReaderProposal proposal = gson.fromJson(response.getContent(), ReaderProposal.class);
 
@@ -121,6 +124,7 @@ public class TractorAgent extends Agent {
         	                    + " | Location: " + proposal.locationID
         	                    + " | Detection time: " + proposal.detectionTime);
 
+        	            // Replace if bigger
         	            if (proposal.detectionTime > bestTime) {
         	                bestTime = proposal.detectionTime;
         	                bestProposal = response;
@@ -128,7 +132,8 @@ public class TractorAgent extends Agent {
         	        }
         	    }
 
-        	    // Build accept/reject replies for every response received
+        	    // Bou Accepts en Rejects
+        	    // Loop deur responses, as dit beste proposal, accept
         	    for (Object obj : responses) {
         	        ACLMessage response = (ACLMessage) obj;
 
@@ -138,6 +143,7 @@ public class TractorAgent extends Agent {
 
         	        ACLMessage reply = response.createReply();
 
+        	        // As dit die proposal is wat die beste is, accept
         	        if ((response == bestProposal) && (bestTime > 0)) {
         	            reply.setPerformative(ACLMessage.ACCEPT_PROPOSAL);
         	            System.out.println("[" + tractorID + "] Accepted: "

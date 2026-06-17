@@ -21,7 +21,7 @@ public class CreatorAgent extends Agent {
 
     // Agent begin nommers
     private int tractorCount = 3;
-    private int farmCount = 3;
+    private int farmCount = 4;
 
     @Override
     protected void setup() {

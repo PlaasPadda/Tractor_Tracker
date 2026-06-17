@@ -27,7 +27,7 @@ public class DashboardAgent extends Agent {
 
     // Nuwe Agents begin nommer
     private int newTractorCount = 3;
-    private int newFarmCount = 3;
+    private int newFarmCount = 4;
 
     @Override
     protected void setup() {
@@ -142,7 +142,6 @@ public class DashboardAgent extends Agent {
 
         tractorTextField = new JTextField();
         tractorTextField.setPreferredSize(new Dimension(150, 25));
-        tractorTextField.setToolTipText("Enter tractor name e.g. Tractor1");
 
         JButton queryBtn = new JButton("Get Info");
         queryBtn.addActionListener(e -> sendQueryRequest());
@@ -155,7 +154,7 @@ public class DashboardAgent extends Agent {
         JPanel infoPanel = new JPanel(new BorderLayout(5, 5));
         infoPanel.setBorder(BorderFactory.createTitledBorder("Tractor Information"));
 
-        infoLabel = new JLabel("<html>No information yet. Select a tractor and click Get Info.</html>");
+        infoLabel = new JLabel("<html>No information yet.</html>");
         infoLabel.setHorizontalAlignment(SwingConstants.LEFT);
         infoLabel.setVerticalAlignment(SwingConstants.TOP);
         infoLabel.setBorder(BorderFactory.createEmptyBorder(5, 5, 5, 5));

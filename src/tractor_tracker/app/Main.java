@@ -41,7 +41,6 @@ public class Main {
         Object[] readerArgs35 = new Object[]{"Farm3", "farm3_p22"};
         Object[] readerArgs36 = new Object[]{"Farm3", "farm3_p23"};
         try {
-            // Format: createNewAgent("agentName", "fully.qualified.ClassName", args)
         	// Creators
         	  mainContainer.createNewAgent("Creator", "tractor_tracker.app.CreatorAgent", null).start();
         	// Servers
