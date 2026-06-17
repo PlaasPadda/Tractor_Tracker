@@ -1,2 +1,2 @@
-{"tractorID":"tractor2","fuelLevel":12.3,"locationID":"farm3_p11","farmID":"Farm3"}
-{"tractorID":"tractor1","fuelLevel":15.8,"locationID":"farm1_p22","farmID":"Farm1"}
+{"tractorID":"tractor2","fuelLevel":16.6,"locationID":"farm2_p22","farmID":"Farm2"}
+{"tractorID":"tractor1","fuelLevel":12.2,"locationID":"farm1_p21","farmID":"Farm1"}

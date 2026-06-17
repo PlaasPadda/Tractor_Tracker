@@ -206,7 +206,7 @@ public class DashboardAgent extends Agent {
             // Generate naam vir nuwe agent
             String assetID;
             if (assetType.equals("tractor")) {
-                assetID = "Tractor" + newTractorCount++;
+                assetID = "tractor" + newTractorCount++;
             } else {
                 assetID = "Farm" + newFarmCount++;
             }
