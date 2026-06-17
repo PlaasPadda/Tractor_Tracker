@@ -1,5 +1,5 @@
 package tractor_tracker.app;
-// AssetCreationResponse.java - received from Creator by Dashboard
+// AssetCreationResponse.java - Creator stuur na Dashboard
 public class AssetCreationResponse {
     String assetType;
     String assetID;

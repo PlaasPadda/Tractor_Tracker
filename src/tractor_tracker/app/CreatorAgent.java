@@ -130,10 +130,18 @@ public class CreatorAgent extends Agent {
             // Spawn sy Reader agents 
             String reader1ID = farmID + "_11";
             String reader2ID = farmID + "_12";
+            String reader3ID = farmID + "_13";
+            String reader4ID = farmID + "_21";
+            String reader5ID = farmID + "_22";
+            String reader6ID = farmID + "_23";
 
             int farmNumber = farmCount++;
-            Object[] reader1Args = new Object[]{farmID, "farm"+ (farmNumber) + "p11"};
-            Object[] reader2Args = new Object[]{farmID, "farm"+ (farmNumber) + "p12"};
+            Object[] reader1Args = new Object[]{farmID, "farm"+ (farmNumber) + "_p11"};
+            Object[] reader2Args = new Object[]{farmID, "farm"+ (farmNumber) + "_p12"};
+            Object[] reader3Args = new Object[]{farmID, "farm"+ (farmNumber) + "_p13"};
+            Object[] reader4Args = new Object[]{farmID, "farm"+ (farmNumber) + "_p21"};
+            Object[] reader5Args = new Object[]{farmID, "farm"+ (farmNumber) + "_p22"};
+            Object[] reader6Args = new Object[]{farmID, "farm"+ (farmNumber) + "_p23"};
 
             AgentController reader1AC = getContainerController().createNewAgent(
                     reader1ID,
@@ -151,8 +159,41 @@ public class CreatorAgent extends Agent {
             reader2AC.start();
             System.out.println("[" + creatorID + "] Spawned ReaderAgent: " + reader2ID);
 
-            return true;
+            AgentController reader3AC = getContainerController().createNewAgent(
+                    reader3ID,
+                    "tractor_tracker.app.ReaderAgent",
+                    reader3Args
+            );
+            reader3AC.start();
+            System.out.println("[" + creatorID + "] Spawned ReaderAgent: " + reader3ID);
 
+            AgentController reader4AC = getContainerController().createNewAgent(
+                    reader4ID,
+                    "tractor_tracker.app.ReaderAgent",
+                    reader4Args
+            );
+            reader4AC.start();
+            System.out.println("[" + creatorID + "] Spawned ReaderAgent: " + reader4ID);
+            
+            
+            AgentController reader5AC = getContainerController().createNewAgent(
+                    reader5ID,
+                    "tractor_tracker.app.ReaderAgent",
+                    reader5Args
+            );
+            reader5AC.start();
+            System.out.println("[" + creatorID + "] Spawned ReaderAgent: " + reader5ID);
+            
+            
+            AgentController reader6AC = getContainerController().createNewAgent(
+                    reader6ID,
+                    "tractor_tracker.app.ReaderAgent",
+                    reader6Args
+            );
+            reader6AC.start();
+            System.out.println("[" + creatorID + "] Spawned ReaderAgent: " + reader6ID);
+            
+            return true;
         } catch (StaleProxyException e) {
             System.err.println("[" + creatorID + "] Failed to spawn FarmAgent: " + e.getMessage());
             return false;

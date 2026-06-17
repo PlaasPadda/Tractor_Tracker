@@ -52,7 +52,7 @@ public class DashboardAgent extends Agent {
                 if (msg != null) {
                     final String content = msg.getContent();
                     // Debug receive
-                    System.out.println("[" + dashboardID + "] Received info from Server: " + content);
+                    //System.out.println("[" + dashboardID + "] Received info from Server: " + content);
 
                     // As error
                     if (content.contains("error")) {
@@ -90,9 +90,9 @@ public class DashboardAgent extends Agent {
                 if (msg != null) {
                     AssetCreationResponse response = gson.fromJson(msg.getContent(), AssetCreationResponse.class);
                     // DEbug receive
-                    System.out.println("[" + dashboardID + "] Creator response | Type: "
-                            + response.assetType + " | ID: " + response.assetID
-                            + " | Status: " + response.status);
+//                    System.out.println("[" + dashboardID + "] Creator response | Type: "
+//                            + response.assetType + " | ID: " + response.assetID
+//                            + " | Status: " + response.status);
 
                     SwingUtilities.invokeLater(() -> {
                         // As tractor successfully added, wys message
@@ -295,7 +295,7 @@ public class DashboardAgent extends Agent {
 
             send(query);
 
-            System.out.println("[" + dashboardID + "] Sent query for: " + tractorName);
+//            System.out.println("[" + dashboardID + "] Sent query for: " + tractorName);
             infoLabel.setText("Fetching info for " + tractorName + "...");
 
         } catch (FIPAException e) {

@@ -40,11 +40,11 @@ public class FarmAgent extends Agent {
                     FarmInfo info = gson.fromJson(msg.getContent(), FarmInfo.class);
 
                     // Debug print message
-                    System.out.println("[" + farmID + "] Received detection from Reader: "
-                            + msg.getSender().getLocalName()
-                            + " | Tractor: " + info.tractorID
-                            + " | Fuel: " + info.fuelLevel
-                            + " | Location: " + info.locationID);
+//                    System.out.println("[" + farmID + "] Received detection from Reader: "
+//                            + msg.getSender().getLocalName()
+//                            + " | Tractor: " + info.tractorID
+//                            + " | Fuel: " + info.fuelLevel
+//                            + " | Location: " + info.locationID);
 
                     // Forward info na die Farm Manager
                     forwardToFarmManager(info);

@@ -17,6 +17,9 @@ import java.util.Vector;
 
 import com.google.gson.Gson;
 
+import java.io.DataOutputStream;
+import java.net.Socket;
+
 public class TractorAgent extends Agent {
 
     private String tractorID;
@@ -38,11 +41,12 @@ public class TractorAgent extends Agent {
         System.out.println("[" + tractorID + "] Started at location: " + currentLocationID);
 
         // Behaviour 1: Ticker update fuel consumption oor tyd
-        addBehaviour(new TickerBehaviour(this, 5000) {  
+        addBehaviour(new TickerBehaviour(this, 10000) {  
             @Override
             protected void onTick() {
             	// Increase oor tyd
-                fuelConsumed += 0.5f + random.nextFloat() * 1.5f;
+                //fuelConsumed += 0.5f + random.nextFloat() * 1.5f;
+            	fuelConsumed = getFuelFromErlang();
 
                 // Beweeg tractor
                 currentLocationID = SIMULATED_LOCATIONS[random.nextInt(SIMULATED_LOCATIONS.length)];
@@ -84,7 +88,7 @@ public class TractorAgent extends Agent {
         }
 
         // Maak TractorInfo om te stuur aan Reader
-        // Serialise CFP content using Gson
+        // Serialise CFP content met Gson
         Gson gson = new Gson();
         TractorInfo info = new TractorInfo(tractorID, fuelConsumed, currentLocationID);
         cfp.setContent(gson.toJson(info));
@@ -95,25 +99,60 @@ public class TractorAgent extends Agent {
 
         	@Override
         	protected void handlePropose(ACLMessage propose, Vector acceptances) {
+        		// Ons acknowledge net receipt hier
+        	}
+        	
+        	@Override
+        	protected void handleAllResponses(Vector responses, Vector acceptances) {
         	    Gson gson = new Gson();
-        	    ReaderProposal proposal = gson.fromJson(propose.getContent(), ReaderProposal.class);
 
-        	    // Debug die proposal communication
-        	    System.out.println("[" + tractorID + "] Proposal from "
-        	            + propose.getSender().getLocalName()
-        	            + " at location: " + proposal.locationID);
+        	    ACLMessage bestProposal = null;
+        	    long bestTime = -1;
 
-        	    // Accept of reject proposal
-        	    ACLMessage reply = propose.createReply();
-        	    if (currentLocationID.equals(proposal.locationID)) {
-        	        reply.setPerformative(ACLMessage.ACCEPT_PROPOSAL);
-        	        System.out.println("[" + tractorID + "] Accepted: "
-        	                + propose.getSender().getLocalName());
-        	    } else {
-        	        reply.setPerformative(ACLMessage.REJECT_PROPOSAL);
+        	    // Find the proposal with the largest detection time
+        	    for (Object obj : responses) {
+        	        ACLMessage response = (ACLMessage) obj;
+
+        	        if (response.getPerformative() == ACLMessage.PROPOSE) {
+        	            ReaderProposal proposal = gson.fromJson(response.getContent(), ReaderProposal.class);
+
+        	            System.out.println("[" + tractorID + "] Proposal from "
+        	                    + response.getSender().getLocalName()
+        	                    + " | Location: " + proposal.locationID
+        	                    + " | Detection time: " + proposal.detectionTime);
+
+        	            if (proposal.detectionTime > bestTime) {
+        	                bestTime = proposal.detectionTime;
+        	                bestProposal = response;
+        	            }
+        	        }
         	    }
-        	    // Add na batch reply list
-        	    acceptances.add(reply);
+
+        	    // Build accept/reject replies for every response received
+        	    for (Object obj : responses) {
+        	        ACLMessage response = (ACLMessage) obj;
+
+        	        if (response.getPerformative() != ACLMessage.PROPOSE) {
+        	            continue; // skip REFUSE or other non-propose messages
+        	        }
+
+        	        ACLMessage reply = response.createReply();
+
+        	        if ((response == bestProposal) && (bestTime > 0)) {
+        	            reply.setPerformative(ACLMessage.ACCEPT_PROPOSAL);
+        	            System.out.println("[" + tractorID + "] Accepted: "
+        	                    + response.getSender().getLocalName()
+        	                    + " (detection time: " + bestTime + ")");
+        	        } else {
+        	            reply.setPerformative(ACLMessage.REJECT_PROPOSAL);
+        	        }
+
+        	        acceptances.add(reply);
+        	    }
+
+        	    if (bestTime <= 0) {
+        	        System.out.println("[" + tractorID + "] No reader has detected this tractor yet — all proposals rejected.");
+        	    }
         	}
 
         	// Receive die inform vanaf reader
@@ -136,6 +175,49 @@ public class TractorAgent extends Agent {
                         + failure.getSender().getLocalName());
             }
         });
+    }
+    
+ // Query Erlang vir current fuel consumption
+    private float getFuelFromErlang() {
+    	// Kry port number
+        int tractorNumber = extractTractorNumber();
+        int port = 9000 + tractorNumber;
+
+        try {
+        	// Connect aan socket
+            Socket socket = new Socket("localhost", port);
+
+            // Stuur "request" na port
+            DataOutputStream outToServer = new DataOutputStream(socket.getOutputStream());
+            byte[] outBytes = "request".getBytes("UTF-8");
+            outToServer.write(outBytes);
+
+            // Lees reply 
+            byte[] inBytes = new byte[500];
+            int numOfBytes = socket.getInputStream().read(inBytes);
+            String dataReceived = new String(inBytes, 0, numOfBytes, "UTF-8");
+
+            socket.close();
+
+            // Debug reply
+            System.out.println("[" + tractorID + "] Fuel reading from Erlang (port " + port + "): " + dataReceived);
+
+            return Float.parseFloat(dataReceived.trim());
+
+        } catch (Exception e) {
+            System.err.println("[" + tractorID + "] Failed to get fuel reading from Erlang: " + e.getMessage());
+            return fuelConsumed; // Gebruik vorige value
+        }
+    }
+
+    private int extractTractorNumber() {
+    	// Replace die dele van die string wat nie [0-9] is met niks (remove characters, hou integers)
+        String numberPart = tractorID.replaceAll("[^0-9]", "");
+        if (numberPart.isEmpty()) {
+            System.err.println("[" + tractorID + "] Could not extract tractor number from name.");
+            return 1; // fallback default
+        }
+        return Integer.parseInt(numberPart);
     }
 
     @Override

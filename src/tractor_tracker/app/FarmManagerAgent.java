@@ -46,12 +46,12 @@ public class FarmManagerAgent extends Agent {
                     FarmInfo info = gson.fromJson(msg.getContent(), FarmInfo.class);
 
                     // Debug receive
-                    System.out.println("[" + farmManagerID + "] Received detection from Farm: "
-                            + msg.getSender().getLocalName()
-                            + " | Tractor: " + info.tractorID
-                            + " | Fuel: " + info.fuelLevel
-                            + " | Location: " + info.locationID
-                            + " | Farm: " + info.farmID);
+//                    System.out.println("[" + farmManagerID + "] Received detection from Farm: "
+//                            + msg.getSender().getLocalName()
+//                            + " | Tractor: " + info.tractorID
+//                            + " | Fuel: " + info.fuelLevel
+//                            + " | Location: " + info.locationID
+//                            + " | Farm: " + info.farmID);
 
                     // Forward na Server agent
                     forwardToServer(info);
@@ -99,7 +99,7 @@ public class FarmManagerAgent extends Agent {
             send(inform);
 
             // DEbug send
-            System.out.println("[" + farmManagerID + "] Forwarded detection to Server.");
+//            System.out.println("[" + farmManagerID + "] Forwarded detection to Server.");
 
         } catch (FIPAException e) {
             System.err.println("[" + farmManagerID + "] DF search failed: " + e.getMessage());
@@ -127,7 +127,7 @@ public class FarmManagerAgent extends Agent {
             }
 
             // Debug Refresh
-            System.out.println("[" + farmManagerID + "] Active farms refreshed: " + activeFarms.size() + " farm(s) found.");
+//            System.out.println("[" + farmManagerID + "] Active farms refreshed: " + activeFarms.size() + " farm(s) found.");
 
         } catch (FIPAException e) {
             System.err.println("[" + farmManagerID + "] Failed to refresh farm list: " + e.getMessage());

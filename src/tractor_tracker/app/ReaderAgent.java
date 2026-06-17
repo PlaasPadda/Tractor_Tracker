@@ -1,15 +1,26 @@
 package tractor_tracker.app;
 
 import jade.core.Agent;
-import jade.core.AID;
+import jade.core.behaviours.Behaviour;
 import jade.domain.DFService;
 import jade.domain.FIPAException;
 import jade.domain.FIPAAgentManagement.DFAgentDescription;
 import jade.domain.FIPAAgentManagement.ServiceDescription;
+import jade.domain.FIPAAgentManagement.NotUnderstoodException;
+import jade.domain.FIPAAgentManagement.RefuseException;
+import jade.domain.FIPAAgentManagement.FailureException;
 import jade.lang.acl.ACLMessage;
-import jade.proto.ContractNetResponder;
+import jade.lang.acl.MessageTemplate;
+import jade.proto.SSContractNetResponder;
+import jade.proto.SSResponderDispatcher;
 
 import com.google.gson.Gson;
+
+import java.io.DataOutputStream;
+import java.net.Socket;
+
+import java.util.concurrent.locks.Lock;
+import java.util.concurrent.locks.ReentrantLock;
 
 public class ReaderAgent extends Agent {
 
@@ -17,11 +28,29 @@ public class ReaderAgent extends Agent {
     private String farmID;
     private String locationID;
 
+    // One shared lock per farm port, so only one reader at a time can query
+    // a given farm's position sensor. Shared across all ReaderAgent instances.
+    private static final Lock farm1Lock = new ReentrantLock();
+    private static final Lock farm2Lock = new ReentrantLock();
+    private static final Lock farm3Lock = new ReentrantLock();
+    private static final Lock farm4Lock = new ReentrantLock();
+
+    private Lock getLockForFarm(int farmNumber) {
+        switch (farmNumber) {
+            case 1: return farm1Lock;
+            case 2: return farm2Lock;
+            case 3: return farm3Lock;
+            case 4: return farm4Lock;
+            default:
+                System.err.println("[" + readerID + "] Unknown farm number: " + farmNumber);
+                return farm1Lock;
+        }
+    }
+
     @Override
     protected void setup() {
-        readerID = getLocalName();         // e.g. "Reader1"
+        readerID = getLocalName();
 
-        // Lees sy farmID and locationID deurgesit as arguments vanaf Main
         Object[] args = getArguments();
         if (args != null && args.length >= 2) {
             farmID = (String) args[0];
@@ -32,72 +61,134 @@ public class ReaderAgent extends Agent {
             return;
         }
 
-        // Startup message
         System.out.println("[" + readerID + "] Started | Farm: " + farmID + " | Location: " + locationID);
 
-        // Register met die DF sodat Tractor agents kan discover 
         registerWithDF();
 
-        // Add die ContractNetResponder om Tractor CFPs handle  
-        addBehaviour(new ContractNetResponder(this, null) {
+        // SSResponderDispatcher: permanently listens for CFPs, and for EACH one
+        // spins up a brand new SSContractNetResponder to handle that single interaction.
+        // This is the correct JADE pattern for a responder that must handle
+        // repeated, independent CNP interactions over time.
+        MessageTemplate cfpTemplate = MessageTemplate.MatchPerformative(ACLMessage.CFP);
+
+        addBehaviour(new SSResponderDispatcher(this, cfpTemplate) {
 
             @Override
-            protected ACLMessage handleCfp(ACLMessage cfp) {
-                Gson gson = new Gson();
-                TractorInfo info = gson.fromJson(cfp.getContent(), TractorInfo.class);
+            protected Behaviour createResponder(ACLMessage cfp) {
+                System.out.println("[" + readerID + "] New CFP dispatched, creating responder.");
 
-                // Debug receive 
-                System.out.println("[" + readerID + "] Received CFP from: "
-                        + cfp.getSender().getLocalName()
-                        + " | Tractor location: " + info.locationID
-                        + " | My location: " + locationID);
+                return new SSContractNetResponder(myAgent, cfp) {
 
-                // Bou en stuur locationID proposal
-                ACLMessage propose = cfp.createReply();
-                propose.setPerformative(ACLMessage.PROPOSE);
+                    @Override
+                    protected ACLMessage handleCfp(ACLMessage cfp)
+                            throws RefuseException, FailureException, NotUnderstoodException {
 
-                ReaderProposal proposal = new ReaderProposal(locationID);
-                propose.setContent(gson.toJson(proposal));
+                        Gson gson = new Gson();
+                        TractorInfo info = gson.fromJson(cfp.getContent(), TractorInfo.class);
 
-                return propose;
-            }
+                        System.out.println("[" + readerID + "] Received CFP from: "
+                                + cfp.getSender().getLocalName()
+                                + " | Tractor: " + info.tractorID);
 
-            // Stuur Inform as Proposal accepted is
-            @Override
-            protected ACLMessage handleAcceptProposal(ACLMessage cfp, ACLMessage propose, ACLMessage accept) {
-                Gson gson = new Gson();
-                TractorInfo info = gson.fromJson(cfp.getContent(), TractorInfo.class);
+                        long detectionTime = queryErlangForDetection(info.tractorID);
 
-                // debug successful detection
-                System.out.println("[" + readerID + "] DETECTED tractor: " + info.tractorID
-                        + " | Fuel: " + info.fuelLevel
-                        + " | Location: " + locationID);
+                        System.out.println("[" + readerID + "] Detection time for " + info.tractorID
+                                + " at " + locationID + ": " + detectionTime);
 
-                // Forward detection na die Farm agent
-                forwardToFarm(info);
+                        ACLMessage propose = cfp.createReply();
+                        propose.setPerformative(ACLMessage.PROPOSE);
 
-                // Bou confirmation message en Inform die Tractor dat detection deurgesit is 
-                ACLMessage inform = accept.createReply();
-                inform.setPerformative(ACLMessage.INFORM);
+                        ReaderProposal proposal = new ReaderProposal(locationID, detectionTime);
+                        propose.setContent(gson.toJson(proposal));
 
-                DetectionConfirmation confirmation = new DetectionConfirmation(info.tractorID, locationID, "SUCCESS");
-                inform.setContent(gson.toJson(confirmation));
+                        return propose;
+                    }
 
-                return inform;
-            }
+                    @Override
+                    protected ACLMessage handleAcceptProposal(ACLMessage cfp, ACLMessage propose, ACLMessage accept)
+                            throws FailureException {
 
-            // Print reject as rejected
-            @Override
-            protected void handleRejectProposal(ACLMessage cfp, ACLMessage propose, ACLMessage reject) {
-                System.out.println("[" + readerID + "] Proposal rejected by: "
-                        + reject.getSender().getLocalName());
+                        Gson gson = new Gson();
+                        TractorInfo info = gson.fromJson(cfp.getContent(), TractorInfo.class);
+
+                        System.out.println("[" + readerID + "] DETECTED tractor: " + info.tractorID
+                                + " | Fuel: " + info.fuelLevel
+                                + " | Location: " + locationID);
+
+                        forwardToFarm(info);
+
+                        ACLMessage inform = accept.createReply();
+                        inform.setPerformative(ACLMessage.INFORM);
+
+                        DetectionConfirmation confirmation = new DetectionConfirmation(info.tractorID, locationID, "SUCCESS");
+                        inform.setContent(gson.toJson(confirmation));
+
+                        return inform;
+                    }
+                };
             }
         });
     }
 
-    // Soek vir sy Farm Agent en stuur die tractor info
+    // Queries the Erlang simulation's position sensor for this reader's last detection.
+    private long queryErlangForDetection(String tractorID) {
+        int farmNumber = Integer.parseInt(farmID.replaceAll("[^0-9]", ""));
+        int port = 9100 + farmNumber;
+
+        Lock lock = getLockForFarm(farmNumber);
+        lock.lock();
+
+        try {
+            Socket socket = new Socket("localhost", port);
+
+            DataOutputStream outToServer = new DataOutputStream(socket.getOutputStream());
+            byte[] outBytes = locationID.getBytes("UTF-8");
+            outToServer.write(outBytes);
+
+            byte[] inBytes = new byte[500];
+            int numOfBytes = socket.getInputStream().read(inBytes);
+            String dataReceived = new String(inBytes, 0, numOfBytes, "UTF-8");
+
+            socket.close();
+
+            return parseDetectionTime(dataReceived, tractorID);
+
+        } catch (Exception e) {
+            System.err.println("[" + readerID + "] Failed to query Erlang: " + e.getMessage());
+            return 0;
+        } finally {
+            lock.unlock();
+        }
+    }
+
+    private long parseDetectionTime(String entry, String tractorID) {
+        String[] parts = entry.split("_");
+
+        if (parts.length < 4) {
+            System.err.println("[" + readerID + "] Unexpected Erlang entry format: " + entry);
+            return 0;
+        }
+
+        String lastTractor = parts[2];
+        String timeString = parts[3];
+
+        if (lastTractor.equalsIgnoreCase("none")) {
+            return 0;
+        }
+
+        if (!lastTractor.equalsIgnoreCase(tractorID)) {
+            return 0;
+        }
+
+        try {
+            return Long.parseLong(timeString);
+        } catch (NumberFormatException e) {
+            System.err.println("[" + readerID + "] Could not parse time from entry: " + entry);
+            return 0;
+        }
+    }
+
     private void forwardToFarm(TractorInfo info) {
-        // Soek vir Farm agent vir hierdie reader se farmID in die DF
         DFAgentDescription template = new DFAgentDescription();
         ServiceDescription sd = new ServiceDescription();
         sd.setType("farm");
@@ -111,27 +202,21 @@ public class ReaderAgent extends Agent {
                 return;
             }
 
-            // Bou farminfo message om na Farm agent te stuur
             ACLMessage informFarm = new ACLMessage(ACLMessage.INFORM);
             informFarm.addReceiver(results[0].getName());
 
             Gson gson = new Gson();
-            FarmInfo farmInfo = new FarmInfo(info.tractorID, info.fuelLevel, info.locationID, farmID);
+            FarmInfo farmInfo = new FarmInfo(info.tractorID, info.fuelLevel, locationID, farmID);
             informFarm.setContent(gson.toJson(farmInfo));
 
             send(informFarm);
-
-            // Debug vir successful send
-            System.out.println("[" + readerID + "] Forwarded detection to Farm: " + farmID);
 
         } catch (FIPAException e) {
             System.err.println("[" + readerID + "] DF search failed: " + e.getMessage());
         }
     }
 
-    // Register met die DF met service type "reader"
     private void registerWithDF() {
-    	// Bou agent description
         DFAgentDescription dfd = new DFAgentDescription();
         dfd.setName(getAID());
 
@@ -142,7 +227,6 @@ public class ReaderAgent extends Agent {
         sd.addProperties(new jade.domain.FIPAAgentManagement.Property("locationID", locationID));
         dfd.addServices(sd);
 
-        // Register met DF
         try {
             DFService.register(this, dfd);
             System.out.println("[" + readerID + "] Registered with DF | Farm: " + farmID + " | Location: " + locationID);
@@ -153,7 +237,6 @@ public class ReaderAgent extends Agent {
 
     @Override
     protected void takeDown() {
-        // Deregister vanaf DF on shutdown
         try {
             DFService.deregister(this);
         } catch (FIPAException e) {

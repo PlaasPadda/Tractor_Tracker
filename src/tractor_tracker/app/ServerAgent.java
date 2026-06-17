@@ -83,8 +83,8 @@ public class ServerAgent extends Agent {
                     TractorQuery query = gson.fromJson(msg.getContent(), TractorQuery.class);
 
                     // Debug query receive
-                    System.out.println("[" + serverID + "] Query received for tractorID: "
-                            + query.tractorID);
+//                    System.out.println("[" + serverID + "] Query received for tractorID: "
+//                            + query.tractorID);
 
                     // Lees die current state file en vind requested tractor
                     FarmInfo currentState = readCurrentState(query.tractorID);
